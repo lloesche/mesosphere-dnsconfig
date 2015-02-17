@@ -24,6 +24,18 @@ service can be one of
 
 If hostname is not specified the name that's being returned by `hostname` will be used.
 
+
+Paths
+-----
+Right now the following paths are hard coded:
+- mesos: /etc/mesos/
+- mesos-master: /etc/mesos-master/
+- mesos-slave: /etc/mesos-slave/
+- marathon: /etc/marathon/conf/
+- zookeeper: /var/lib/zookeeper/myid and /etc/zookeeper/zoo.cfg
+
+For Mesosphere services configuration files are being created in the Mesosphere filename=key, file_content=value style. For Zookeeper the key myid will be written to /var/lib/zookeeper/myid, everything else is written to /etc/zookeeper/zoo.cfg.
+
 DNS Setup
 ---------
 mesosphere-dnsconfig starts by querying the nameserver for the following TXT record:
