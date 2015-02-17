@@ -34,15 +34,15 @@ func main() {
   dprint(fmt.Sprintf("using hostname %s", hostname))
 
   priority["mesos"]        = append(priority["mesos"], ".mesos.")
-  priority["mesos"]        = append(priority["mesos"], ".")
+//  priority["mesos"]        = append(priority["mesos"], ".")
   priority["mesos-master"] = append(priority["mesos-master"], ".mesos-master.")
-  priority["mesos-master"] = append(priority["mesos-master"], ".")
+//  priority["mesos-master"] = append(priority["mesos-master"], ".")
   priority["mesos-slave"]  = append(priority["mesos-slave"], ".mesos-slave.")
-  priority["mesos-slave"]  = append(priority["mesos-slave"], ".")
+//  priority["mesos-slave"]  = append(priority["mesos-slave"], ".")
   priority["marathon"]     = append(priority["marathon"], ".marathon.")
-  priority["marathon"]     = append(priority["marathon"], ".")
+//  priority["marathon"]     = append(priority["marathon"], ".")
   priority["zookeeper"]    = append(priority["zookeeper"], ".zookeeper.")
-  priority["zookeeper"]    = append(priority["zookeeper"], ".")
+//  priority["zookeeper"]    = append(priority["zookeeper"], ".")
   _, exists := priority[service]
   if exists == false {
     log.Fatalln(fmt.Sprintf("unknown service '%s'", service))
