@@ -112,7 +112,7 @@ func commitConfig(service string, options map[string]string, flags map[string]bo
     case "mesos-master": writeMesosphereConfig("/etc/mesos-master/", options, flags)
     case "mesos-slave": writeMesosphereConfig("/etc/mesos-slave/", options, flags)
     case "marathon": writeMesosphereConfig("/etc/marathon/conf/", options, flags)
-    case "zookeeper": writeZookeeperConfig("/var/lib/zookeeper/", "/etc/zookeeper/", options)
+    case "zookeeper": writeZookeeperConfig("/var/lib/zookeeper/", "/etc/zookeeper/conf/", options)
   }
 }
 

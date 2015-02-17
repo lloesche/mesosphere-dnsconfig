@@ -32,7 +32,7 @@ Right now the following paths are hard coded:
 - mesos-master: /etc/mesos-master/
 - mesos-slave: /etc/mesos-slave/
 - marathon: /etc/marathon/conf/
-- zookeeper: /var/lib/zookeeper/myid and /etc/zookeeper/zoo.cfg
+- zookeeper: /var/lib/zookeeper/myid and /etc/zookeeper/conf/zoo.cfg
 
 For Mesosphere services configuration files are being created in the Mesosphere filename=key, file_content=value style. For Zookeeper the key myid will be written to /var/lib/zookeeper/myid, everything else is written to /etc/zookeeper/zoo.cfg.
 
