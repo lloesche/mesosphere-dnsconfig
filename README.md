@@ -64,3 +64,47 @@ config.marathon._mesosphere.mesosphere.com  IN  TXT "task_launch_timeout=300000"
                                             IN  TXT "checkpoint"
 ```
 becomes the arguments `--task_launch_timeout=300000 --checkpoint`.
+
+
+***Extended Example***
+```
+$ host -t txt config.marathon._mesosphere.hw.ca1.mesosphere.com
+config.marathon._mesosphere.hw.ca1.mesosphere.com descriptive text "checkpoint"
+config.marathon._mesosphere.hw.ca1.mesosphere.com descriptive text "event_subscriber=http_callback"
+config.marathon._mesosphere.hw.ca1.mesosphere.com descriptive text "framework_name=marathon"
+config.marathon._mesosphere.hw.ca1.mesosphere.com descriptive text "task_launch_timeout=300000"
+
+$ host -t txt config.mesos._mesosphere.hw.ca1.mesosphere.com
+config.mesos._mesosphere.hw.ca1.mesosphere.com descriptive text "zk=zk://172.16.0.12:2181,172.16.0.13:2181,172.16.0.14:2181/mesos"
+
+$ host -t txt config.mesos-master._mesosphere.hw.ca1.mesosphere.com
+config.mesos-master._mesosphere.hw.ca1.mesosphere.com descriptive text "cluster=OVH1"
+config.mesos-master._mesosphere.hw.ca1.mesosphere.com descriptive text "quorum=2"
+config.mesos-master._mesosphere.hw.ca1.mesosphere.com descriptive text "work_dir=/hdd/mesos/master"
+
+$ host -t txt config.mesos-slave._mesosphere.hw.ca1.mesosphere.com
+config.mesos-slave._mesosphere.hw.ca1.mesosphere.com descriptive text "containerizers=docker,mesos"
+config.mesos-slave._mesosphere.hw.ca1.mesosphere.com descriptive text "executor_registration_timeout=5mins"
+config.mesos-slave._mesosphere.hw.ca1.mesosphere.com descriptive text "isolation=cgroups/cpu,cgroups/mem"
+config.mesos-slave._mesosphere.hw.ca1.mesosphere.com descriptive text "work_dir=/hdd/mesos/slave"
+
+$ host -t txt config.mesos-slave._mesosphere.srv2.hw.ca1.mesosphere.com
+config.mesos-slave._mesosphere.srv2.hw.ca1.mesosphere.com descriptive text "hostname=srv2.hw.ca1.mesosphere.com"
+
+$ host -t txt config.mesos-master._mesosphere.srv2.hw.ca1.mesosphere.com
+config.mesos-master._mesosphere.srv2.hw.ca1.mesosphere.com descriptive text "hostname=srv2.hw.ca1.mesosphere.com"
+
+$ host -t txt config.zookeeper._mesosphere.srv2.hw.ca1.mesosphere.com
+config.zookeeper._mesosphere.srv2.hw.ca1.mesosphere.com descriptive text "myid=1"
+
+$ host -t txt config.zookeeper._mesosphere.hw.ca1.mesosphere.com
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "clientPort=2181"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "dataDir=/var/lib/zookeeper"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "initLimit=10"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "maxClientCnxns=60"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "server.1=172.16.0.12:2888:3888"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "server.2=172.16.0.13:2888:3888"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "server.3=172.16.0.14:2888:3888"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "syncLimit=5"
+config.zookeeper._mesosphere.hw.ca1.mesosphere.com descriptive text "tickTime=2000"
+```
