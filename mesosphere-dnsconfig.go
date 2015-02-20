@@ -64,7 +64,7 @@ func main() {
 	}
 }
 
-func txtRecords(service string, hostname string) (map[string][]string) {
+func txtRecords(service string, hostname string) map[string][]string {
 
 	records := map[string][]string{}
 	wg := sync.WaitGroup{}
