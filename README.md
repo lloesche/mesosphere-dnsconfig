@@ -11,8 +11,11 @@ go build mesosphere-dnsconfig.go
 
 Usage
 -----
-```bash
-mesosphere-dnsconfig <service> [hostname]
+```
+# ./mesosphere-dnsconfig
+  -dry-run=false: dry run: do not write configs, just print them
+  -hostname="": hostname to use, os hostname is used by default
+  -service="": service to configure: mesos, mesos-master, mesos-slave, marathon or zookeeper
 ```
 
 service can be one of
