@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 	"sync"
@@ -22,7 +23,8 @@ var priority = make(map[string][]string)
 func main() {
 	service := flag.String("service", "", "service to configure: mesos, mesos-master, mesos-slave, marathon or zookeeper")
 	hostname := flag.String("hostname", "", "hostname to use, os hostname is used by default")
-	dry := flag.Bool("dry-run", false, "dry run: do not write configs, just print them")
+	write := flag.Bool("write", false, "write configs to files")
+	exec := flag.Bool("exec", false, "start service")
 	flag.Parse()
 
 	if *service == "" {
@@ -43,11 +45,11 @@ func main() {
 
 	priority["mesos"] = append(priority["mesos"], ".mesos.")
 	//  priority["mesos"]        = append(priority["mesos"], ".")
-	priority["mesos-master"] = append(priority["mesos-master"], ".mesos-master.")
+	priority["mesos-master"] = append(priority["mesos-master"], ".mesos-master.", ".mesos.")
 	//  priority["mesos-master"] = append(priority["mesos-master"], ".")
-	priority["mesos-slave"] = append(priority["mesos-slave"], ".mesos-slave.")
+	priority["mesos-slave"] = append(priority["mesos-slave"], ".mesos-slave.", ".mesos.")
 	//  priority["mesos-slave"]  = append(priority["mesos-slave"], ".")
-	priority["marathon"] = append(priority["marathon"], ".marathon.")
+	priority["marathon"] = append(priority["marathon"], ".marathon.", ".mesos.")
 	//  priority["marathon"]     = append(priority["marathon"], ".")
 	priority["zookeeper"] = append(priority["zookeeper"], ".zookeeper.")
 	//  priority["zookeeper"]    = append(priority["zookeeper"], ".")
@@ -58,12 +60,17 @@ func main() {
 
 	options, flags := findConfig(*service, *hostname)
 
-	if !*dry {
+	if *write && *exec {
 		commitConfig(*service, options, flags)
+		restartService(*service)
+	} else if *write {
+		commitConfig(*service, options, flags)
+	} else if *exec {
+		runInForeground(*service, options, flags)
 	}
 }
 
-func findConfig(service string, hostname string) (map[string]string, map[string]bool) {
+func findConfig(service string, hostname string) (map[string]string, []string) {
 	options := make(map[string]string)
 	flags := make(map[string]bool)
 
@@ -116,19 +123,33 @@ func findConfig(service string, hostname string) (map[string]string, map[string]
 					if exists {
 						dprint(fmt.Sprintf("option %s is already defined as %s, not overwriting with %s", s[0], current_value, s[1]))
 					} else {
-						dprint(fmt.Sprintf("%s: found %s => %s", dnsname, s[0], s[1]))
-						options[s[0]] = s[1]
+						// if we are dealing with marathon, we should derive zk and master options
+						// from mesos config, if they were not passed to marathon directly
+						if s[0] == "zk" && service == "marathon" && priority[service][y] == ".mesos." {
+							// option is not set for marathon
+							options["zk"] = strings.Replace(s[1], "/mesos", "/marathon", 1)
+
+							if _, ok := options["master"]; !ok {
+								options["master"] = s[1]
+							}
+						} else {
+							dprint(fmt.Sprintf("%s %s: found %s => %s", dnsname, priority[service][y], s[0], s[1]))
+							options[s[0]] = s[1]
+						}
 					}
 				} else {
 					dprint(fmt.Sprintf("unknown contents %s", s))
 				}
-
 			}
-
 		}
 	}
 
-	return options, flags
+	f := make([]string, 0, len(flags))
+	for flag := range flags {
+		f = append(f, flag)
+	}
+
+	return options, f
 }
 
 func dprint(txt string) {
@@ -137,7 +158,7 @@ func dprint(txt string) {
 	}
 }
 
-func commitConfig(service string, options map[string]string, flags map[string]bool) {
+func commitConfig(service string, options map[string]string, flags []string) {
 	switch service {
 	case "mesos":
 		writeMesosphereConfig("/etc/mesos/", options, flags)
@@ -150,6 +171,46 @@ func commitConfig(service string, options map[string]string, flags map[string]bo
 	case "zookeeper":
 		writeZookeeperConfig("/var/lib/zookeeper/", "/etc/zookeeper/conf/", options)
 	}
+}
+
+func restartService(service string) {
+	cmd := exec.Command("service", service, "restart")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Println(string(out))
+		log.Fatal(err)
+	}
+}
+
+func runInForeground(service string, options map[string]string, flags []string) {
+	var err error
+
+	switch service {
+	case "mesos", "mesos-master", "mesos-slave", "marathon":
+		log.Println("running:", service, strings.Join(mesosArgs(options, flags), " "))
+		err = exec.Command(service, mesosArgs(options, flags)...).Run()
+	case "zookeeper":
+		log.Println("/usr/share/zookeeper/bin/zkServer.sh start-foreground")
+		err = exec.Command("/usr/share/zookeeper/bin/zkServer.sh", "start-foreground").Run()
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func mesosArgs(options map[string]string, flags []string) []string {
+	args := []string{}
+
+	for k, v := range options {
+		args = append(args, "--"+k+"="+v)
+	}
+
+	for _, f := range flags {
+		args = append(args, "--"+f)
+	}
+
+	return args
 }
 
 func writeConfigFile(output_directory string, option string, data []byte) {
@@ -179,7 +240,7 @@ func writeConfigFile(output_directory string, option string, data []byte) {
 	}
 }
 
-func writeMesosphereConfig(output_directory string, options map[string]string, flags map[string]bool) {
+func writeMesosphereConfig(output_directory string, options map[string]string, flags []string) {
 	output_directory = fsprefix + output_directory
 
 	err := os.MkdirAll(output_directory, 0755)
@@ -192,7 +253,7 @@ func writeMesosphereConfig(output_directory string, options map[string]string, f
 		writeConfigFile(output_directory, option, []byte(options[option]+"\n"))
 	}
 
-	for flag := range flags {
+	for _, flag := range flags {
 		log.Printf("flag: %s\n", flag)
 		writeConfigFile(output_directory, "?"+flag, []byte(""))
 	}
