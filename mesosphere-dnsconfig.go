@@ -18,7 +18,7 @@ const prefix = "config"
 const suffix = "_mesosphere."
 const fsprefix = ""
 
-var priority = make(map[string][]string)
+var nsprio = make(map[string][]string)
 
 func main() {
 	service := flag.String("service", "", "service to configure: mesos-master, mesos-slave, marathon or zookeeper")
@@ -43,11 +43,11 @@ func main() {
 
 	dprint(fmt.Sprintf("using hostname %s", *hostname))
 
-	priority["mesos-master"] = append(priority["mesos-master"], ".mesos-master.", ".mesos.")
-	priority["mesos-slave"] = append(priority["mesos-slave"], ".mesos-slave.", ".mesos.")
-	priority["marathon"] = append(priority["marathon"], ".marathon.", ".mesos.")
-	priority["zookeeper"] = append(priority["zookeeper"], ".zookeeper.")
-	_, exists := priority[*service]
+	nsprio["mesos-master"] = append(nsprio["mesos-master"], ".mesos-master.", ".mesos.")
+	nsprio["mesos-slave"] = append(nsprio["mesos-slave"], ".mesos-slave.", ".mesos.")
+	nsprio["marathon"] = append(nsprio["marathon"], ".marathon.", ".mesos.")
+	nsprio["zookeeper"] = append(nsprio["zookeeper"], ".zookeeper.")
+	_, exists := nsprio[*service]
 	if exists == false {
 		log.Fatalln(fmt.Sprintf("unknown service '%s'", *service))
 	}
@@ -73,8 +73,8 @@ func txtRecords(service string, hostname string) map[string][]string {
 	for i := range hostname_parts {
 		domain := strings.Join(hostname_parts[i:], ".")
 
-		for y := range priority[service] {
-			dnsname := prefix + priority[service][y] + suffix + domain
+		for y := range nsprio[service] {
+			dnsname := prefix + nsprio[service][y] + suffix + domain
 
 			wg.Add(1)
 			go func() {
@@ -82,6 +82,7 @@ func txtRecords(service string, hostname string) map[string][]string {
 				if err != nil {
 					dprint(fmt.Sprintf("%s", err))
 				} else {
+					dprint(fmt.Sprintf("lookup %s: found", dnsname))
 					records[dnsname] = txt
 				}
 				wg.Done()
@@ -106,8 +107,8 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 		domain := strings.Join(hostname_parts[i:], ".")
 
 		// traverse through the services
-		for y := range priority[service] {
-			dnsname := prefix + priority[service][y] + suffix + domain
+		for y := range nsprio[service] {
+			dnsname := prefix + nsprio[service][y] + suffix + domain
 
 			txts := records[dnsname]
 
@@ -124,19 +125,26 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 					if exists {
 						dprint(fmt.Sprintf("option %s is already defined as %s, not overwriting with %s", s[0], current_value, s[1]))
 					} else {
-						// if we are dealing with marathon, we should derive zk and master options
-						// from mesos config, if they were not passed to marathon directly
-						if s[0] == "zk" && service == "marathon" && priority[service][y] == ".mesos." {
-							// option is not set for marathon
-							options["zk"] = strings.Replace(s[1], "/mesos", "/marathon", 1)
+						// due to the way configuration currently works the 'zk' entry in the .mesos.
+						// hierarchy (/etc/mesos/zk) is being handled in a special way.
+						if s[0] == "zk" && nsprio[service][y] == ".mesos." {
 
-							if _, ok := options["master"]; !ok {
-								options["master"] = s[1]
+							// if we are dealing with marathon, we should derive zk and master options
+							// from mesos config, if they were not passed to marathon directly
+							if service == "marathon" {
+
+								if _, ok := options["master"]; !ok {
+									dprint(fmt.Sprintf("%s: setting master => %s", dnsname, s[1]))
+									options["master"] = s[1]
+								}
+								zk := strings.Join(strings.Split(s[1], "/")[:3], "/") + "/marathon"
+								dprint(fmt.Sprintf("%s: deriving %s => %s from %s", dnsname, s[0], zk, s[1]))
+								s[1] = zk
 							}
-						} else {
-							dprint(fmt.Sprintf("%s: found %s => %s", dnsname, s[0], s[1]))
-							options[s[0]] = s[1]
 						}
+
+						dprint(fmt.Sprintf("%s: found %s => %s", dnsname, s[0], s[1]))
+						options[s[0]] = s[1]
 					}
 				} else {
 					dprint(fmt.Sprintf("unknown contents %s", s))
@@ -161,8 +169,6 @@ func dprint(txt string) {
 
 func commitConfig(service string, options map[string]string, flags []string) {
 	switch service {
-	case "mesos":
-		writeMesosphereConfig("/etc/mesos/", options, flags)
 	case "mesos-master":
 		writeMesosphereConfig("/etc/mesos-master/", options, flags)
 	case "mesos-slave":
