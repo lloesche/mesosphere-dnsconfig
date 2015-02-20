@@ -23,8 +23,8 @@ var nsprio = make(map[string][]string)
 func main() {
 	service := flag.String("service", "", "service to configure: mesos-master, mesos-slave, marathon or zookeeper")
 	hostname := flag.String("hostname", "", "hostname to use, os hostname is used by default")
-	write := flag.Bool("write", false, "write configs to files")
-	exec := flag.Bool("exec", false, "start service")
+	write := flag.Bool("write", false, "write config to files")
+	exec := flag.Bool("exec", false, "(re)start service")
 	flag.Parse()
 
 	if *service == "" {
@@ -60,6 +60,9 @@ func main() {
 	} else if *write {
 		commitConfig(*service, options, flags)
 	} else if *exec {
+		if *service == "zookeeper" {
+			log.Println("running zookeeper without writing it's config might not be what you want")
+		}
 		runInForeground(*service, options, flags)
 	}
 }
@@ -181,6 +184,7 @@ func commitConfig(service string, options map[string]string, flags []string) {
 }
 
 func restartService(service string) {
+	dprint(fmt.Sprintf("running: service %s restart", service))
 	cmd := exec.Command("service", service, "restart")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -197,8 +201,8 @@ func runInForeground(service string, options map[string]string, flags []string) 
 		log.Println("running:", service, strings.Join(mesosArgs(options, flags), " "))
 		err = exec.Command(service, mesosArgs(options, flags)...).Run()
 	case "zookeeper":
-		log.Println("/usr/share/zookeeper/bin/zkServer.sh start-foreground")
-		err = exec.Command("/usr/share/zookeeper/bin/zkServer.sh", "start-foreground").Run()
+		log.Println("running: zkServer.sh start-foreground")
+		err = exec.Command("zkServer.sh", "start-foreground").Run()
 	}
 
 	if err != nil {
@@ -221,9 +225,15 @@ func mesosArgs(options map[string]string, flags []string) []string {
 }
 
 func writeConfigFile(output_directory string, option string, data []byte) {
+	output_directory = fsprefix + output_directory
 
 	output_file := output_directory + option
 	dprint(fmt.Sprintf("writing %s", output_file))
+
+	err := os.MkdirAll(output_directory, 0755)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	file, err := ioutil.TempFile(output_directory, ".mesospherednsconfig")
 	if err != nil {
@@ -248,12 +258,6 @@ func writeConfigFile(output_directory string, option string, data []byte) {
 }
 
 func writeMesosphereConfig(output_directory string, options map[string]string, flags []string) {
-	output_directory = fsprefix + output_directory
-
-	err := os.MkdirAll(output_directory, 0755)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	for option := range options {
 		log.Printf("option: %s=%s\n", option, options[option])
@@ -267,17 +271,6 @@ func writeMesosphereConfig(output_directory string, options map[string]string, f
 }
 
 func writeZookeeperConfig(myid_dir string, zoocfg_dir string, options map[string]string) {
-	myid_dir = fsprefix + myid_dir
-	zoocfg_dir = fsprefix + zoocfg_dir
-
-	err := os.MkdirAll(myid_dir, 0755)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	err = os.MkdirAll(zoocfg_dir, 0755)
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	zoocfg := ""
 
