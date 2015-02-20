@@ -72,9 +72,9 @@ func txtRecords(service string, hostname string) map[string][]string {
 	records := map[string][]string{}
 	wg := sync.WaitGroup{}
 
-	hostname_parts := strings.Split(hostname, ".")
-	for i := range hostname_parts {
-		domain := strings.Join(hostname_parts[i:], ".")
+	hostParts := strings.Split(hostname, ".")
+	for i := range hostParts {
+		domain := strings.Join(hostParts[i:], ".")
 
 		for y := range nsprio[service] {
 			dnsname := prefix + nsprio[service][y] + suffix + domain
@@ -105,9 +105,9 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 	records := txtRecords(service, hostname)
 
 	// traverse through the hostname
-	hostname_parts := strings.Split(hostname, ".")
-	for i := range hostname_parts {
-		domain := strings.Join(hostname_parts[i:], ".")
+	hostParts := strings.Split(hostname, ".")
+	for i := range hostParts {
+		domain := strings.Join(hostParts[i:], ".")
 
 		// traverse through the services
 		for y := range nsprio[service] {
@@ -124,9 +124,8 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 					dprint(fmt.Sprintf("%s: enabling %s", dnsname, s[0]))
 					flags[s[0]] = true
 				} else if len(s) == 2 {
-					current_value, exists := options[s[0]]
-					if exists {
-						dprint(fmt.Sprintf("option %s is already defined as %s, not overwriting with %s", s[0], current_value, s[1]))
+					if cv, ok := options[s[0]]; ok {
+						dprint(fmt.Sprintf("option %s is already defined as %s, not overwriting with %s", s[0], cv, s[1]))
 					} else {
 						// due to the way configuration currently works the 'zk' entry in the .mesos.
 						// hierarchy (/etc/mesos/zk) is being handled in a special way.
@@ -224,75 +223,73 @@ func mesosArgs(options map[string]string, flags []string) []string {
 	return args
 }
 
-func writeConfigFile(output_directory string, option string, data []byte) {
-	output_directory = fsprefix + output_directory
+func writeConfigFile(outDir string, option string, data []byte) {
+	outDir = fsprefix + outDir
 
-	output_file := output_directory + option
-	dprint(fmt.Sprintf("writing %s", output_file))
+	outFile := outDir + option
+	dprint(fmt.Sprintf("writing %s", outFile))
 
-	err := os.MkdirAll(output_directory, 0755)
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		log.Fatalln(err)
+	}
+
+	file, err := ioutil.TempFile(outDir, ".mesospherednsconfig")
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	file, err := ioutil.TempFile(output_directory, ".mesospherednsconfig")
-	if err != nil {
+	if _, err = file.Write(data); err != nil {
 		log.Fatalln(err)
 	}
-	_, err = file.Write(data)
-	if err != nil {
+
+	if err = file.Close(); err != nil {
 		log.Fatalln(err)
 	}
-	err = file.Close()
-	if err != nil {
+
+	if err = os.Chmod(file.Name(), 0644); err != nil {
 		log.Fatalln(err)
 	}
-	err = os.Chmod(file.Name(), 0644)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	err = os.Rename(file.Name(), output_file)
-	if err != nil {
+
+	if err = os.Rename(file.Name(), outFile); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func writeMesosphereConfig(output_directory string, options map[string]string, flags []string) {
+func writeMesosphereConfig(outDir string, options map[string]string, flags []string) {
 
 	for option := range options {
 		log.Printf("option: %s=%s\n", option, options[option])
-		writeConfigFile(output_directory, option, []byte(options[option]+"\n"))
+		writeConfigFile(outDir, option, []byte(options[option]+"\n"))
 	}
 
 	for _, flag := range flags {
 		log.Printf("flag: %s\n", flag)
-		writeConfigFile(output_directory, "?"+flag, []byte(""))
+		writeConfigFile(outDir, "?"+flag, []byte(""))
 	}
 }
 
-func writeZookeeperConfig(myid_dir string, zoocfg_dir string, options map[string]string) {
+func writeZookeeperConfig(myidDir string, zoocfgDir string, options map[string]string) {
 
 	zoocfg := ""
-
-	options_keys := make([]string, len(options))
+	okeys := make([]string, len(options))
 	i := 0
 	for k, _ := range options {
-		options_keys[i] = k
+		okeys[i] = k
 		i++
 	}
-	sort.Strings(options_keys)
+	sort.Strings(okeys)
 
-	for i := range options_keys {
-		option := options_keys[i]
+	for i := range okeys {
+		option := okeys[i]
 		log.Printf("option: %s=%s\n", option, options[option])
 		if option == "myid" {
-			writeConfigFile(myid_dir, option, []byte(options[option]+"\n"))
+			writeConfigFile(myidDir, option, []byte(options[option]+"\n"))
 		} else {
 			zoocfg += option + "=" + options[option] + "\n"
 		}
 	}
 
 	if len(zoocfg) > 0 {
-		writeConfigFile(zoocfg_dir, "zoo.cfg", []byte(zoocfg))
+		writeConfigFile(zoocfgDir, "zoo.cfg", []byte(zoocfg))
 	}
 }
