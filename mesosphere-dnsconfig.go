@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 )
 
 const debug = true
@@ -59,6 +60,30 @@ func findConfig(service string, hostname string) (map[string]string, map[string]
 
 	hostname_parts := strings.Split(hostname, ".")
 
+	records := map[string][]string{}
+
+	wg := sync.WaitGroup{}
+	for i := range hostname_parts {
+		domain := strings.Join(hostname_parts[i:], ".")
+
+		for y := range priority[service] {
+			dnsname := prefix + priority[service][y] + suffix + domain
+
+			wg.Add(1)
+			go func() {
+				txt, err := net.LookupTXT(dnsname)
+				if err != nil {
+					dprint(fmt.Sprintf("%s", err))
+				} else {
+					records[dnsname] = txt
+				}
+				wg.Done()
+			}()
+		}
+	}
+
+	wg.Wait()
+
 	// traverse through the hostname
 	for i := range hostname_parts {
 		domain := strings.Join(hostname_parts[i:], ".")
@@ -79,14 +104,14 @@ func findConfig(service string, hostname string) (map[string]string, map[string]
 				s := strings.SplitN(txts[t], "=", 2)
 
 				if len(s) == 1 {
-					dprint(fmt.Sprintf("enabling %s", s[0]))
+					dprint(fmt.Sprintf("%s: enabling %s", dnsname, s[0]))
 					flags[s[0]] = true
 				} else if len(s) == 2 {
 					current_value, exists := options[s[0]]
 					if exists {
 						dprint(fmt.Sprintf("option %s is already defined as %s, not overwriting with %s", s[0], current_value, s[1]))
 					} else {
-						dprint(fmt.Sprintf("found %s => %s", s[0], s[1]))
+						dprint(fmt.Sprintf("%s: found %s => %s", dnsname, s[0], s[1]))
 						options[s[0]] = s[1]
 					}
 				} else {
