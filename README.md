@@ -19,16 +19,6 @@ Usage
   -write=false: write configs to files
 ```
 
-service can be one of
-- mesos
-- mesos-master
-- mesos-slave
-- marathon
-- zookeeper
-
-If hostname is not specified the name that's being returned by `hostname` will be used.
-
-
 Paths
 -----
 Right now the following paths are hard coded:
