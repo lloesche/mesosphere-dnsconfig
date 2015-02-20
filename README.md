@@ -13,9 +13,10 @@ Usage
 -----
 ```
 # ./mesosphere-dnsconfig
-  -dry-run=false: dry run: do not write configs, just print them
+  -exec=false: start service
   -hostname="": hostname to use, os hostname is used by default
-  -service="": service to configure: mesos, mesos-master, mesos-slave, marathon or zookeeper
+  -service="": service to configure: mesos-master, mesos-slave, marathon or zookeeper
+  -write=false: write configs to files
 ```
 
 service can be one of
