@@ -101,11 +101,7 @@ func findConfig(service string, hostname string) (map[string]string, map[string]
 		for y := range priority[service] {
 			dnsname := prefix + priority[service][y] + suffix + domain
 
-			txts, err := net.LookupTXT(dnsname)
-			if err != nil {
-				dprint(fmt.Sprintf("%s", err))
-				continue
-			}
+			txts := records[dnsname]
 
 			// iterate all returned txt strings
 			for t := range txts {
