@@ -21,7 +21,7 @@ const fsprefix = ""
 var priority = make(map[string][]string)
 
 func main() {
-	service := flag.String("service", "", "service to configure: mesos, mesos-master, mesos-slave, marathon or zookeeper")
+	service := flag.String("service", "", "service to configure: mesos-master, mesos-slave, marathon or zookeeper")
 	hostname := flag.String("hostname", "", "hostname to use, os hostname is used by default")
 	write := flag.Bool("write", false, "write configs to files")
 	exec := flag.Bool("exec", false, "start service")
@@ -43,16 +43,10 @@ func main() {
 
 	dprint(fmt.Sprintf("using hostname %s", *hostname))
 
-	priority["mesos"] = append(priority["mesos"], ".mesos.")
-	//  priority["mesos"]        = append(priority["mesos"], ".")
 	priority["mesos-master"] = append(priority["mesos-master"], ".mesos-master.", ".mesos.")
-	//  priority["mesos-master"] = append(priority["mesos-master"], ".")
 	priority["mesos-slave"] = append(priority["mesos-slave"], ".mesos-slave.", ".mesos.")
-	//  priority["mesos-slave"]  = append(priority["mesos-slave"], ".")
 	priority["marathon"] = append(priority["marathon"], ".marathon.", ".mesos.")
-	//  priority["marathon"]     = append(priority["marathon"], ".")
 	priority["zookeeper"] = append(priority["zookeeper"], ".zookeeper.")
-	//  priority["zookeeper"]    = append(priority["zookeeper"], ".")
 	_, exists := priority[*service]
 	if exists == false {
 		log.Fatalln(fmt.Sprintf("unknown service '%s'", *service))
@@ -186,7 +180,7 @@ func runInForeground(service string, options map[string]string, flags []string) 
 	var err error
 
 	switch service {
-	case "mesos", "mesos-master", "mesos-slave", "marathon":
+	case "mesos-master", "mesos-slave", "marathon":
 		log.Println("running:", service, strings.Join(mesosArgs(options, flags), " "))
 		err = exec.Command(service, mesosArgs(options, flags)...).Run()
 	case "zookeeper":
