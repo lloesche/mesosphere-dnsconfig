@@ -64,14 +64,10 @@ func main() {
 	}
 }
 
-func findConfig(service string, hostname string) (map[string]string, []string) {
-	options := make(map[string]string)
-	flags := make(map[string]bool)
-
-	hostname_parts := strings.Split(hostname, ".")
+func txtRecords(service string, hostname string) (map[string][]string) {
 
 	records := map[string][]string{}
-
+	hostname_parts := strings.Split(hostname, ".")
 	wg := sync.WaitGroup{}
 	for i := range hostname_parts {
 		domain := strings.Join(hostname_parts[i:], ".")
@@ -93,6 +89,17 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 	}
 
 	wg.Wait()
+
+	return records
+}
+
+func findConfig(service string, hostname string) (map[string]string, []string) {
+	options := make(map[string]string)
+	flags := make(map[string]bool)
+
+	hostname_parts := strings.Split(hostname, ".")
+
+	records := txtRecords(service, hostname)
 
 	// traverse through the hostname
 	for i := range hostname_parts {
