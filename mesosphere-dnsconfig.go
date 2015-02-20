@@ -67,8 +67,9 @@ func main() {
 func txtRecords(service string, hostname string) (map[string][]string) {
 
 	records := map[string][]string{}
-	hostname_parts := strings.Split(hostname, ".")
 	wg := sync.WaitGroup{}
+
+	hostname_parts := strings.Split(hostname, ".")
 	for i := range hostname_parts {
 		domain := strings.Join(hostname_parts[i:], ".")
 
@@ -97,11 +98,10 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 	options := make(map[string]string)
 	flags := make(map[string]bool)
 
-	hostname_parts := strings.Split(hostname, ".")
-
 	records := txtRecords(service, hostname)
 
 	// traverse through the hostname
+	hostname_parts := strings.Split(hostname, ".")
 	for i := range hostname_parts {
 		domain := strings.Join(hostname_parts[i:], ".")
 
@@ -134,7 +134,7 @@ func findConfig(service string, hostname string) (map[string]string, []string) {
 								options["master"] = s[1]
 							}
 						} else {
-							dprint(fmt.Sprintf("%s %s: found %s => %s", dnsname, priority[service][y], s[0], s[1]))
+							dprint(fmt.Sprintf("%s: found %s => %s", dnsname, s[0], s[1]))
 							options[s[0]] = s[1]
 						}
 					}
