@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,21 +20,26 @@ const fsprefix = ""
 var priority = make(map[string][]string)
 
 func main() {
+	service := flag.String("service", "", "service to configure: mesos, mesos-master, mesos-slave, marathon or zookeeper")
+	hostname := flag.String("hostname", "", "hostname to use, os hostname is used by default")
+	dry := flag.Bool("dry-run", false, "dry run: do not write configs, just print them")
+	flag.Parse()
 
-	if len(os.Args) < 2 || len(os.Args) > 3 {
-		fmt.Printf("Usage: %s <service> [hostname]\n", os.Args[0])
-		fmt.Println("<service> is one of mesos, mesos-master, mesos-slave, marathon or zookeeper")
+	if *service == "" {
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	service := os.Args[1]
-	hostname, err := os.Hostname()
-	if len(os.Args) == 3 {
-		hostname = os.Args[2]
-	} else if err != nil {
-		log.Fatalln(fmt.Sprintf("couldn't determine hostname: %s", err))
+	if *hostname == "" {
+		host, err := os.Hostname()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		*hostname = host
 	}
-	dprint(fmt.Sprintf("using hostname %s", hostname))
+
+	dprint(fmt.Sprintf("using hostname %s", *hostname))
 
 	priority["mesos"] = append(priority["mesos"], ".mesos.")
 	//  priority["mesos"]        = append(priority["mesos"], ".")
@@ -45,13 +51,16 @@ func main() {
 	//  priority["marathon"]     = append(priority["marathon"], ".")
 	priority["zookeeper"] = append(priority["zookeeper"], ".zookeeper.")
 	//  priority["zookeeper"]    = append(priority["zookeeper"], ".")
-	_, exists := priority[service]
+	_, exists := priority[*service]
 	if exists == false {
-		log.Fatalln(fmt.Sprintf("unknown service '%s'", service))
+		log.Fatalln(fmt.Sprintf("unknown service '%s'", *service))
 	}
 
-	options, flags := findConfig(service, hostname)
-	commitConfig(service, options, flags)
+	options, flags := findConfig(*service, *hostname)
+
+	if !*dry {
+		commitConfig(*service, options, flags)
+	}
 }
 
 func findConfig(service string, hostname string) (map[string]string, map[string]bool) {
