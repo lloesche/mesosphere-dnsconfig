@@ -18,7 +18,7 @@ const prefix = "config"
 const suffix = "_mesosphere."
 const fsprefix = ""
 
-var nsprio = make(map[string][]string)
+var nsprio = map[string][]string{}
 
 func main() {
 	service := flag.String("service", "", "service to configure: mesos-master, mesos-slave, marathon or zookeeper")
@@ -67,9 +67,10 @@ func main() {
 	}
 }
 
-func txtRecords(service string, hostname string) map[string][]string {
+func txtRecords(service string, hostname string) (map[string][]string) {
 
 	records := map[string][]string{}
+	mutex := &sync.Mutex{}
 	wg := sync.WaitGroup{}
 
 	hostParts := strings.Split(hostname, ".")
@@ -86,7 +87,9 @@ func txtRecords(service string, hostname string) map[string][]string {
 					dprint(fmt.Sprintf("%s", err))
 				} else {
 					dprint(fmt.Sprintf("lookup %s: found", dnsname))
+					mutex.Lock()
 					records[dnsname] = txt
+					mutex.Unlock()
 				}
 				wg.Done()
 			}()
@@ -99,8 +102,8 @@ func txtRecords(service string, hostname string) map[string][]string {
 }
 
 func findConfig(service string, hostname string) (map[string]string, []string) {
-	options := make(map[string]string)
-	flags := make(map[string]bool)
+	options := map[string]string{}
+	flags := map[string]bool{}
 
 	records := txtRecords(service, hostname)
 
