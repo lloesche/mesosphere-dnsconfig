@@ -47,8 +47,7 @@ func main() {
 	nsprio["mesos-slave"] = append(nsprio["mesos-slave"], ".mesos-slave.", ".mesos.")
 	nsprio["marathon"] = append(nsprio["marathon"], ".marathon.", ".mesos.")
 	nsprio["zookeeper"] = append(nsprio["zookeeper"], ".zookeeper.")
-	_, exists := nsprio[*service]
-	if exists == false {
+	if _, ok := nsprio[*service]; !ok {
 		log.Fatalln(fmt.Sprintf("unknown service '%s'", *service))
 	}
 
