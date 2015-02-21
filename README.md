@@ -22,7 +22,6 @@ Usage
 Paths
 -----
 Right now the following paths are hard coded:
-- mesos: /etc/mesos/
 - mesos-master: /etc/mesos-master/
 - mesos-slave: /etc/mesos-slave/
 - marathon: /etc/marathon/conf/
