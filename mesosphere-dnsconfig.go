@@ -16,7 +16,7 @@ import (
 const debug = true
 const prefix = "config"
 const suffix = "_mesosphere."
-const fsprefix = ""
+const fsprefix = "" // set to e.g. /tmp for debugging purposes
 
 var nsprio = map[string][]string{}
 
@@ -67,7 +67,7 @@ func main() {
 	}
 }
 
-func txtRecords(service string, hostname string) (map[string][]string) {
+func txtRecords(service string, hostname string) map[string][]string {
 
 	records := map[string][]string{}
 	mutex := &sync.Mutex{}
@@ -282,8 +282,7 @@ func writeZookeeperConfig(myidDir string, zoocfgDir string, options map[string]s
 	}
 	sort.Strings(okeys)
 
-	for i := range okeys {
-		option := okeys[i]
+	for _, option := range okeys {
 		log.Printf("option: %s=%s\n", option, options[option])
 		if option == "myid" {
 			writeConfigFile(myidDir, option, []byte(options[option]+"\n"))
